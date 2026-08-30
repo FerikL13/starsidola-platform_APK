@@ -1,38 +1,73 @@
-name: Build STARS IDOLA Global APK
+name: Build STARS IDOLA APK from ZIP
 
 on:
   workflow_dispatch:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "master" ]
 
 jobs:
   build:
-    name: Build Debug APK
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Set up Java 17
+      - name: Unzip source-apk.zip
+        run: |
+          rm -rf apk-src
+          mkdir -p apk-src
+          unzip -q source-apk.zip -d apk-src
+          echo "ZIP extracted"
+          find apk-src -maxdepth 3 -type f | head -80
+
+      - name: Find Android project root
+        id: root
+        run: |
+          ROOT=$(find apk-src -name "settings.gradle" -o -name "settings.gradle.kts" | head -1 | xargs -r dirname)
+          if [ -z "$ROOT" ]; then
+            ROOT=$(find apk-src -name "build.gradle" -o -name "build.gradle.kts" | head -1 | xargs -r dirname)
+          fi
+          if [ -z "$ROOT" ]; then
+            echo "Android project root not found"
+            exit 1
+          fi
+          echo "root=$ROOT" >> "$GITHUB_OUTPUT"
+          echo "Project root: $ROOT"
+
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+          java-version: '17'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: 8.9
 
-      - name: Build APK
-        run: gradle assembleDebug
+      - name: Make Gradle wrapper executable (if present)
+        run: |
+          cd "${{ steps.root.outputs.root }}"
+          if [ -f "./gradlew" ]; then chmod +x ./gradlew; fi
+
+      - name: Build Debug APK
+        run: |
+          set -e
+          ROOT="${{ steps.root.outputs.root }}"
+          if [ -z "$ROOT" ] || [ ! -d "$ROOT" ]; then
+            echo "Project root kosong/tidak valid: '$ROOT'"
+            exit 1
+          fi
+          cd "$ROOT"
+          if [ -f "./gradlew" ]; then
+            ./gradlew assembleDebug --stacktrace
+          else
+            gradle assembleDebug --stacktrace
+          fi
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: stars-idola-global-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: STARS_IDOLA_APK_DEBUG
+          path: ${{ steps.root.outputs.root }}/app/build/outputs/apk/debug/*.apk
