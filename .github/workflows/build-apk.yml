@@ -14,7 +14,7 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-            - name: Unzip source code
+      - name: Unzip source code
         run: |
           if [ -f "source-apk.zip" ]; then
             echo "Memproses source-apk.zip..."
