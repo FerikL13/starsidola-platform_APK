@@ -14,11 +14,15 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Unzip source code
+            - name: Unzip source code
         run: |
           if [ -f "source-apk.zip" ]; then
-            echo "Unzipping source-apk.zip..."
+            echo "Memproses source-apk.zip..."
             unzip -o source-apk.zip
+          else
+            echo "ERROR: File source-apk.zip tidak ditemukan di root repository!"
+            ls -la
+            exit 1
           fi
 
       - name: Set up Java 17
