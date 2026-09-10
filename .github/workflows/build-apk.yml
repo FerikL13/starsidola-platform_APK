@@ -14,13 +14,14 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Unzip source code
+      - name: Unzip source code otomatis
         run: |
-          if [ -f "source-apk.zip" ]; then
-            echo "Memproses source-apk.zip..."
-            unzip -o source-apk.zip
+          ZIP_FILE=$(find . -maxdepth 1 -iname "*.zip" | head -n 1)
+          if [ -n "$ZIP_FILE" ]; then
+            echo "Menemukan file: $ZIP_FILE. Meng-ekstrak..."
+            unzip -o "$ZIP_FILE"
           else
-            echo "ERROR: File source-apk.zip tidak ditemukan di root repository!"
+            echo "ERROR: File ZIP berisi source code tidak ditemukan di repository!"
             ls -la
             exit 1
           fi
@@ -40,7 +41,7 @@ jobs:
           gradle-version: 8.9
 
       - name: Make gradlew executable
-        run: chmod +x gradlew || true
+        run: chmod +x gradlew
 
       - name: Build Release APK
         run: ./gradlew assembleRelease
