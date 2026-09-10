@@ -14,31 +14,14 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Unzip dan Pindahkan File ke Root
+      - name: Unzip source code
         run: |
           ZIP_FILE=$(find . -maxdepth 1 -iname "*.zip" | head -n 1)
           if [ -n "$ZIP_FILE" ]; then
-            echo "Menemukan ZIP: $ZIP_FILE. Meng-ekstrak..."
+            echo "Meng-ekstrak $ZIP_FILE..."
             unzip -o "$ZIP_FILE"
           else
-            echo "ERROR: Tidak ada file .zip di root repository!"
-            ls -la
-            exit 1
-          fi
-
-          if [ ! -f "gradlew" ]; then
-            GRADLEW_PATH=$(find . -mindepth 2 -name "gradlew" | head -n 1)
-            if [ -n "$GRADLEW_PATH" ]; then
-              SUBDIR=$(dirname "$GRADLEW_PATH")
-              echo "File gradlew ditemukan di $SUBDIR, memindahkan ke root..."
-              shopt -s dotglob
-              mv "$SUBDIR"/* .
-            fi
-          fi
-
-          if [ ! -f "gradlew" ]; then
-            echo "ERROR: File gradlew tetap tidak ditemukan!"
-            ls -la
+            echo "ERROR: File ZIP tidak ditemukan!"
             exit 1
           fi
 
@@ -56,11 +39,8 @@ jobs:
         with:
           gradle-version: 8.9
 
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
       - name: Build Release APK
-        run: ./gradlew assembleRelease
+        run: gradle assembleRelease
 
       - name: Sign Release APK
         run: |
