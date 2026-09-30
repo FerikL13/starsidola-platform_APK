@@ -36,6 +36,22 @@ jobs:
         with:
           gradle-version: 8.9
 
+      # Kalau repo hanya berisi file zip source (belum diekstrak), ekstrak otomatis.
+      # Zip bernama source-apk_vX.Y.Z_*.zip terbaru dipakai lebih dulu, kalau tidak ada pakai source-apk*.zip.
+      - name: Ekstrak source dari zip (kalau perlu)
+        run: |
+          if [ -z "$(find . -maxdepth 4 -name settings.gradle -not -path './.git/*' | head -1)" ]; then
+            Z=$(ls source-apk_v*.zip 2>/dev/null | sort -V | tail -1 || true)
+            if [ -z "$Z" ]; then Z=$(ls source-apk*.zip 2>/dev/null | head -1 || true); fi
+            if [ -n "$Z" ]; then
+              echo "Memakai zip: $Z"
+              mkdir -p _src
+              unzip -q -o "$Z" -d _src
+            else
+              echo "Tidak ada zip source di root repo."
+            fi
+          fi
+
       # Cari folder proyek otomatis (tahan kalau file terunggah ke dalam subfolder).
       - name: Cari folder proyek Android
         id: proj
