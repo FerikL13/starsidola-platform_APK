@@ -36,6 +36,20 @@ jobs:
         with:
           gradle-version: 8.9
 
+      # Cari folder proyek otomatis (tahan kalau file terunggah ke dalam subfolder).
+      - name: Cari folder proyek Android
+        id: proj
+        run: |
+          F=$(find . -maxdepth 4 -name settings.gradle -not -path "*/node_modules/*" -not -path "./.git/*" | head -1)
+          if [ -z "$F" ]; then
+            echo "::error::settings.gradle tidak ditemukan di repo. Isi repo:"
+            find . -maxdepth 3 -not -path "./.git/*" | head -60
+            exit 1
+          fi
+          D=$(dirname "$F")
+          echo "Folder proyek: $D"
+          echo "dir=$D" >> "$GITHUB_OUTPUT"
+
       - name: Siapkan kunci rilis (kalau secret tersedia)
         id: ks
         env:
@@ -57,19 +71,22 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        working-directory: ${{ steps.proj.outputs.dir }}
         run: gradle assembleRelease
 
       - name: Build APK debug (fallback)
         if: steps.ks.outputs.mode == 'debug'
+        working-directory: ${{ steps.proj.outputs.dir }}
         run: gradle assembleDebug
 
       - name: Ganti nama APK
         run: |
           mkdir -p out
+          P="${{ steps.proj.outputs.dir }}"
           if [ "${{ steps.ks.outputs.mode }}" = "release" ]; then
-            cp app/build/outputs/apk/release/app-release.apk out/stars-idola.apk
+            cp "$P/app/build/outputs/apk/release/app-release.apk" out/stars-idola.apk
           else
-            cp app/build/outputs/apk/debug/app-debug.apk out/stars-idola.apk
+            cp "$P/app/build/outputs/apk/debug/app-debug.apk" out/stars-idola.apk
           fi
 
       - name: Upload APK artifact
